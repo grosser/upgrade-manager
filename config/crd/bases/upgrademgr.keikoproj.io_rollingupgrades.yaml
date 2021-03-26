@@ -133,10 +133,25 @@ spec:
                 type: string
               endTime:
                 type: string
-              lastBatchNodes:
-                items:
-                  type: string
-                type: array
+              inProcessingNodes:
+                additionalProperties:
+                  description: Node In-processing
+                  properties:
+                    nodeName:
+                      type: string
+                    stepEndTime:
+                      format: date-time
+                      type: string
+                    stepName:
+                      type: string
+                    stepStartTime:
+                      format: date-time
+                      type: string
+                    upgradeStartTime:
+                      format: date-time
+                      type: string
+                  type: object
+                type: object
               lastDrainTime:
                 format: date-time
                 type: string
