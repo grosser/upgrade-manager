@@ -229,7 +229,7 @@ func (r *RollingUpgradeReconciler) WaitForDesiredInstances(ruObj *upgrademgrv1al
 	var err error
 	var ieb *iebackoff.IEBackoff
 	for ieb, err = iebackoff.NewIEBackoff(WaiterMaxDelay, WaiterMinDelay, 0.5, WaiterMaxAttempts); err == nil; err = ieb.Next() {
-		err = r.populateAsg(ruObj)
+		err = r.populateAsg(ruObj, false)
 		if err != nil {
 			return err
 		}
@@ -254,7 +254,7 @@ func (r *RollingUpgradeReconciler) WaitForDesiredNodes(ruObj *upgrademgrv1alpha1
 	var err error
 	var ieb *iebackoff.IEBackoff
 	for ieb, err = iebackoff.NewIEBackoff(WaiterMaxDelay, WaiterMinDelay, 0.5, WaiterMaxAttempts); err == nil; err = ieb.Next() {
-		err = r.populateAsg(ruObj)
+		err = r.populateAsg(ruObj, false)
 		if err != nil {
 			return err
 		}
@@ -363,7 +363,10 @@ func (r *RollingUpgradeReconciler) SetStandby(ruObj *upgrademgrv1alpha1.RollingU
 	}
 
 	// we modified the asg, so our cache is now invalid
-	r.ruObjNameToASG.Delete(ruObj.NamespacedName())
+	err = r.populateAsg(ruObj, true)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -430,9 +433,9 @@ func (r *RollingUpgradeReconciler) getNodeFromAsg(i *autoscaling.Instance, nodeL
 	return nil
 }
 
-func (r *RollingUpgradeReconciler) populateAsg(ruObj *upgrademgrv1alpha1.RollingUpgrade) error {
+func (r *RollingUpgradeReconciler) populateAsg(ruObj *upgrademgrv1alpha1.RollingUpgrade, force bool) error {
 	// if value is still in cache, do nothing.
-	if !r.ruObjNameToASG.IsExpired(ruObj.NamespacedName()) {
+	if !r.ruObjNameToASG.IsExpired(ruObj.NamespacedName()) && !force {
 		return nil
 	}
 
@@ -503,7 +506,6 @@ func (r *RollingUpgradeReconciler) getInProgressInstances(instances []*autoscali
 // runRestack performs rollout of new nodes.
 // returns number of processed instances and optional error.
 func (r *RollingUpgradeReconciler) runRestack(ctx *context.Context, ruObj *upgrademgrv1alpha1.RollingUpgrade) (int, error) {
-
 	asg, err := r.GetAutoScalingGroup(ruObj.NamespacedName())
 	if err != nil {
 		return 0, fmt.Errorf("Unable to load ASG with name: %s", ruObj.Name)
@@ -649,7 +651,7 @@ func (r *RollingUpgradeReconciler) Process(ctx *context.Context,
 		"msg":      "Rolling Upgrade has started",
 	})
 	r.CacheConfig.FlushCache("autoscaling")
-	err := r.populateAsg(ruObj)
+	err := r.populateAsg(ruObj, false)
 	if err != nil {
 		r.finishExecution(err, 0, ctx, ruObj)
 		return
@@ -708,7 +710,7 @@ func (r *RollingUpgradeReconciler) Process(ctx *context.Context,
 func (r *RollingUpgradeReconciler) validateNodesLaunchDefinition(ruObj *upgrademgrv1alpha1.RollingUpgrade) error {
 	//Get ASG launch config
 	var err error
-	err = r.populateAsg(ruObj)
+	err = r.populateAsg(ruObj, false)
 	if err != nil {
 		return fmt.Errorf("%s: Unable to populate the ASG object: %w", ruObj.NamespacedName(), err)
 	}

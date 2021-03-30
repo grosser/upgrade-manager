@@ -769,7 +769,7 @@ func TestPopulateAsgSuccess(t *testing.T) {
 		EC2Client:    MockEC2{},
 		ScriptRunner: NewScriptRunner(log2.NullLogger{}),
 	}
-	err := rcRollingUpgrade.populateAsg(ruObj)
+	err := rcRollingUpgrade.populateAsg(ruObj, false)
 
 	g.Expect(err).To(gomega.BeNil())
 
@@ -803,7 +803,7 @@ func TestPopulateAsgTooMany(t *testing.T) {
 		EC2Client:    MockEC2{},
 		ScriptRunner: NewScriptRunner(log2.NullLogger{}),
 	}
-	err := rcRollingUpgrade.populateAsg(ruObj)
+	err := rcRollingUpgrade.populateAsg(ruObj, false)
 
 	g.Expect(err).To(gomega.Not(gomega.BeNil()))
 	g.Expect(err.Error()).To(gomega.ContainSubstring("Too many ASGs"))
@@ -822,7 +822,7 @@ func TestPopulateAsgNone(t *testing.T) {
 		ASGClient:    &MockAutoscalingGroup{},
 		EC2Client:    MockEC2{},
 	}
-	err := rcRollingUpgrade.populateAsg(ruObj)
+	err := rcRollingUpgrade.populateAsg(ruObj, false)
 
 	g.Expect(err).To(gomega.Not(gomega.BeNil()))
 	g.Expect(err.Error()).To(gomega.ContainSubstring("no ASG found"))
@@ -851,10 +851,10 @@ func TestParallelAsgTracking(t *testing.T) {
 		EC2Client:    MockEC2{},
 	}
 
-	err := rcRollingUpgrade.populateAsg(ruObjA)
+	err := rcRollingUpgrade.populateAsg(ruObjA, false)
 	g.Expect(err).To(gomega.BeNil())
 
-	err = rcRollingUpgrade.populateAsg(ruObjB)
+	err = rcRollingUpgrade.populateAsg(ruObjB, false)
 	g.Expect(err).To(gomega.BeNil())
 
 	//This test ensures that we can lookup each of 2 separate ASGs after populating both
